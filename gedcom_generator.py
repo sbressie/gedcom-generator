@@ -14,45 +14,73 @@ def format_date(date_str):
 def create_individual(idx, label):
     st.subheader(f"{label} Information")
     name = st.text_input(f"{label} Full Name", key=f"name_{idx}")
+    gender = st.selectbox(f"{label} Gender", ["M", "F", "U"], key=f"gender_{idx}")
     birth = st.date_input(f"{label} Birth Date", key=f"birth_{idx}", min_value=datetime(1500, 1, 1))
     birth_place = st.text_input(f"{label} Birthplace", key=f"birthplace_{idx}")
     death = st.date_input(f"{label} Death Date (optional)", value=None, key=f"death_{idx}", min_value=datetime(1500, 1, 1))
     return {
         "id": f"@I{idx}@",
         "name": name,
+        "gender": gender,
         "birth": birth,
         "birth_place": birth_place,
         "death": death if death else None
     }
 
-def create_gedcom(data):
-    gedcom = "0 HEAD\n1 SOUR StreamlitGED\n1 GEDC\n2 VERS 5.5\n1 CHAR UTF-8\n"
+def create_gedcom(data, marriage_date, divorce_date):
+    gedcom = "0 HEAD\n"
+    gedcom += "1 SOUR StreamlitGED\n2 VERS 1.0\n"
+    gedcom += "1 GEDC\n2 VERS 5.5\n2 FORM LINEAGE-LINKED\n"
+    gedcom += "1 CHAR UTF-8\n"
+
     for person in data:
+        first, *last = person['name'].split()
+        surname = last[-1] if last else "Unknown"
+        given = first + " " + " ".join(last[:-1]) if last else first
         gedcom += f"0 {person['id']} INDI\n"
-        gedcom += f"1 NAME {person['name']}\n"
-        gedcom += f"1 BIRT\n2 DATE {format_date(str(person['birth']))}\n2 PLAC {person['birth_place']}\n"
+        gedcom += f"1 NAME {given} /{surname}/\n"
+        gedcom += f"1 SEX {person['gender']}\n"
+        gedcom += "1 BIRT\n"
+        gedcom += f"2 DATE {format_date(str(person['birth']))}\n"
+        gedcom += f"2 PLAC {person['birth_place']}\n"
         if person['death']:
-            gedcom += f"1 DEAT\n2 DATE {format_date(str(person['death']))}\n"
-    if len(data) > 1:
-        gedcom += f"0 @F1@ FAM\n"
-        if len(data) > 1: gedcom += f"1 HUSB {data[0]['id']}\n"
-        if len(data) > 2: gedcom += f"1 WIFE {data[1]['id']}\n"
+            gedcom += "1 DEAT\n"
+            gedcom += f"2 DATE {format_date(str(person['death']))}\n"
+        gedcom += "\n"
+
+    if len(data) >= 2:
+        gedcom += "0 @F1@ FAM\n"
+        gedcom += f"1 HUSB {data[0]['id']}\n"
+        gedcom += f"1 WIFE {data[1]['id']}\n"
         for i in range(2, len(data)):
             gedcom += f"1 CHIL {data[i]['id']}\n"
-        gedcom += "1 MARR\n2 DATE 01 JAN 2000\n"
+        if marriage_date:
+            gedcom += "1 MARR\n"
+            gedcom += f"2 DATE {format_date(str(marriage_date))}\n"
+        if divorce_date:
+            gedcom += "1 DIV\n"
+            gedcom += f"2 DATE {format_date(str(divorce_date))}\n"
+
     gedcom += "0 TRLR\n"
     return gedcom.replace("\n", "\n")
 
-# Collect input for up to 5 individuals
+# Collect family member inputs
 members = []
-labels = ["Husband", "Wife", "Child 1", "Child 2", "Child 3"]
+labels = [
+    "Husband", "Wife", "Child 1", "Child 2", "Child 3",
+    "Sibling 1", "Sibling 2", "Grandparent 1", "Grandparent 2"
+]
 for idx, label in enumerate(labels, start=1):
     with st.expander(f"{label} Info", expanded=(idx <= 2)):
         if st.checkbox(f"Include {label}", value=(idx <= 2), key=f"include_{idx}"):
             members.append(create_individual(idx, label))
 
+st.markdown("---")
+marriage_date = st.date_input("Marriage Date (optional)", value=None, key="marriage_date", min_value=datetime(1500, 1, 1))
+divorce_date = st.date_input("Divorce Date (optional)", value=None, key="divorce_date", min_value=datetime(1500, 1, 1))
+
 # Generate GEDCOM file
 if members and st.button("Generate GEDCOM File"):
-    gedcom_text = create_gedcom(members)
+    gedcom_text = create_gedcom(members, marriage_date, divorce_date)
     st.success("GEDCOM file generated!")
     st.download_button("Download GEDCOM File", gedcom_text, file_name="family_tree.ged", mime="text/plain")
