@@ -14,9 +14,9 @@ def format_date(date_str):
 def create_individual(idx, label):
     st.subheader(f"{label} Information")
     name = st.text_input(f"{label} Full Name", key=f"name_{idx}")
-    birth = st.date_input(f"{label} Birth Date", key=f"birth_{idx}")
+    birth = st.date_input(f"{label} Birth Date", key=f"birth_{idx}", min_value=datetime(1500, 1, 1))
     birth_place = st.text_input(f"{label} Birthplace", key=f"birthplace_{idx}")
-    death = st.date_input(f"{label} Death Date (optional)", value=None, key=f"death_{idx}")
+    death = st.date_input(f"{label} Death Date (optional)", value=None, key=f"death_{idx}", min_value=datetime(1500, 1, 1))
     return {
         "id": f"@I{idx}@",
         "name": name,
