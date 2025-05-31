@@ -5,7 +5,6 @@ from datetime import datetime
 st.set_page_config(page_title="GEDCOM Generator", layout="centered")
 st.title("👪 GEDCOM Family Tree Generator")
 submitter_name = st.text_input("Submitter Full Name", key="submitter_name")
-submitter_email = st.text_input("Submitter Email (Gmail)", key="submitter_email")
 
 def format_date(date_str):
     try:
@@ -70,7 +69,7 @@ def create_gedcom(data, marriage_date, divorce_date):
             gedcom += "1 DIV\n"
             gedcom += f"2 DATE {format_date(str(divorce_date))}\n"
 
-    gedcom += f"0 @SUB1@ SUBM\n1 NAME {submitter_name if submitter_name else 'Unknown'}\n1 EMAIL {submitter_email if submitter_email else 'unknown@gmail.com'}\n0 TRLR\n"
+    gedcom += f"0 @SUB1@ SUBM\n1 NAME {submitter_name if submitter_name else 'Unknown'}\n0 TRLR\n"
     return gedcom.replace("\n", "\n")
 
 # Collect family member inputs
