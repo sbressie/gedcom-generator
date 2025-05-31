@@ -4,6 +4,7 @@ from datetime import datetime
 
 st.set_page_config(page_title="GEDCOM Generator", layout="centered")
 st.title("👪 GEDCOM Family Tree Generator")
+submitter = st.text_input("Submitter Email (Gmail)", key="submitter_email")
 
 def format_date(date_str):
     try:
@@ -14,7 +15,7 @@ def format_date(date_str):
 def create_individual(idx, label):
     st.subheader(f"{label} Information")
     name = st.text_input(f"{label} Full Name", key=f"name_{idx}")
-    gender = st.selectbox(f"{label} Gender", ["M", "F", "U"], key=f"gender_{idx}")
+    gender = st.selectbox(f"{label} Gender", ["M", "F"], key=f"gender_{idx}")
     birth = st.date_input(f"{label} Birth Date", key=f"birth_{idx}", min_value=datetime(1500, 1, 1))
     birth_place = st.text_input(f"{label} Birthplace", key=f"birthplace_{idx}")
     death = st.date_input(f"{label} Death Date (optional)", value=None, key=f"death_{idx}", min_value=datetime(1500, 1, 1))
@@ -31,9 +32,16 @@ def create_gedcom(data, marriage_date, divorce_date):
     gedcom = "0 HEAD\n"
     gedcom += "1 SOUR StreamlitGED\n2 VERS 1.0\n"
     gedcom += "1 GEDC\n2 VERS 5.5\n2 FORM LINEAGE-LINKED\n"
-    gedcom += "1 CHAR UTF-8\n"
+    gedcom += "1 CHAR ANSEL\n1 SUBM @SUB1@\n"
 
     for person in data:
+        # Append FAMS or FAMC based on role
+        person_fam_tags = ""
+        if person["id"] == "@I1@" or person["id"] == "@I2@":
+            person_fam_tags += "1 FAMS @F1@\n"
+        elif person["id"] in [d["id"] for d in data[2:]]:
+            person_fam_tags += "1 FAMC @F1@\n"
+
         first, *last = person['name'].split()
         surname = last[-1] if last else "Unknown"
         given = first + " " + " ".join(last[:-1]) if last else first
@@ -46,7 +54,7 @@ def create_gedcom(data, marriage_date, divorce_date):
         if person['death']:
             gedcom += "1 DEAT\n"
             gedcom += f"2 DATE {format_date(str(person['death']))}\n"
-        gedcom += "\n"
+        gedcom += person_fam_tags + "\n"
 
     if len(data) >= 2:
         gedcom += "0 @F1@ FAM\n"
@@ -61,7 +69,7 @@ def create_gedcom(data, marriage_date, divorce_date):
             gedcom += "1 DIV\n"
             gedcom += f"2 DATE {format_date(str(divorce_date))}\n"
 
-    gedcom += "0 TRLR\n"
+    gedcom += f"0 @SUB1@ SUBM\n1 NAME {submitter if submitter else 'Unknown User'}\n0 TRLR\n"
     return gedcom.replace("\n", "\n")
 
 # Collect family member inputs
